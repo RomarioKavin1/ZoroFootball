@@ -1,0 +1,6 @@
+2024-11-15 19:57:32,726 - INFO - CDP wallet initialized: 0xaab3FeEce86D7Ae8998Ed852C21b094C777d3bcF
+2024-11-15 19:57:36,889 - INFO - HTTP Request: POST https://api.openai.com/v1/chat/completions "HTTP/1.1 200 OK"
+2024-11-15 19:57:37,414 - INFO - Current balance: 0.029997318489424522 ETH
+2024-11-15 19:57:37,951 - INFO - Current balance before transaction: 0.029997318489424522 ETH
+2024-11-15 19:57:37,952 - INFO - Sending ATTACK - ThreadID: 45, CardIndex: 0
+2024-11-15 19:57:41,718 - INFO - Transaction completed - Hash: 0xb9a20d34418927d9594f99de44e28335363e0e23a2d1e98380fbfe9a0b313727
