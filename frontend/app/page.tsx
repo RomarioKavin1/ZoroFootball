@@ -10,6 +10,7 @@ import VsScreen from "@/components/VsScreen";
 import LandingScreen from "@/components/LandingScreen";
 import GameOverScreen from "@/components/GameOver";
 import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
+import { AttestationData, AttestationLog } from "@/components/Attestation";
 
 interface PlayerCard {
   name: string;
@@ -44,6 +45,7 @@ export default function Home() {
   const [gameOver, setGameOver] = useState(false);
   const [gameStarted, setGameStarted] = useState(false);
   const [showVsScreen, setShowVsScreen] = useState(false);
+  const [attestations, setAttestations] = useState<AttestationData[]>([]);
   const [player1Life, setplayer1Life] = useState(3);
   const [player2Life, setplayer2Life] = useState(3);
   const [selectedCard, setSelectedCard] = useState<PlayerCard | null>(null);
@@ -62,6 +64,16 @@ export default function Home() {
   const [availableSlots, setAvailableSlots] = useState<number[]>([
     3, 5, 11, 40, 33, 2, 9,
   ]);
+  const [logs, setLogs] = useState<string[]>([]);
+  const [showLogs, setShowLogs] = useState(false);
+
+  // Add this function to add logs
+  const addLog = (message: string) => {
+    setLogs((prev) => [
+      ...prev,
+      `${new Date().toLocaleTimeString()}: ${message}`,
+    ]);
+  };
 
   const [deckCount, setDeckCount] = useState(7);
   const [showPlayer2Selection, setShowPlayer2Selection] = useState(false);
@@ -98,6 +110,9 @@ export default function Home() {
       Draw Card
     </button>
   );
+  const handleNewAttestation = (attestation: AttestationData) => {
+    setAttestations((prev) => [...prev, attestation]);
+  };
   const handleDrawCard = () => {
     const emptySlotIndex = availableSlots.findIndex((id) => id === 0);
     if (emptySlotIndex === -1) return;
@@ -466,6 +481,45 @@ export default function Home() {
           </div>
         )}
       </div>
+      <div className="fixed bottom-0 right-0 z-50">
+        {/* Tab Button */}
+        <button
+          onClick={() => setShowLogs(!showLogs)}
+          className="bg-purple-600 text-white px-4 py-2 rounded-t-lg font-mono hover:bg-purple-500 transition-colors"
+        >
+          {showLogs ? "▼ Logs" : "▲ Logs"}
+        </button>
+
+        {/* Logs Panel */}
+        <div
+          className={`
+          bg-black/90 
+          border-t-2 border-l-2 border-purple-500
+          w-96 
+          transition-all duration-300 ease-in-out
+          ${showLogs ? "h-64" : "h-0"}
+          overflow-hidden 
+        `}
+        >
+          <div className="p-4 h-full overflow-y-auto">
+            {logs.length === 0 ? (
+              <div className="text-gray-500 text-center mt-4">No logs yet</div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {logs.map((log, index) => (
+                  <div
+                    key={index}
+                    className="text-sm text-white/80 font-mono border-b border-purple-500/20 pb-1"
+                  >
+                    {log}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+      <AttestationLog attestations={attestations} />
     </div>
   );
 }
