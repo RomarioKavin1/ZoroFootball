@@ -1,0 +1,143 @@
+@keyframes vs-slide-right {
+  from {
+    transform: translateX(-800px) rotate(-12deg);
+    opacity: 0;
+    filter: blur(4px);
+  }
+  to {
+    transform: translateX(-300px) rotate(-12deg);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes vs-slide-left {
+  from {
+    transform: translateX(800px) rotate(12deg);
+    opacity: 0;
+    filter: blur(4px);
+  }
+  to {
+    transform: translateX(100px) rotate(12deg);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes vs-text-appear {
+  0% {
+    transform: scale(5);
+    opacity: 0;
+    filter: blur(20px);
+  }
+  50% {
+    transform: scale(0.8);
+    opacity: 0.8;
+    filter: blur(2px);
+  }
+  100% {
+    transform: scale(1);
+    opacity: 1;
+    filter: blur(0);
+  }
+}
+
+@keyframes vs-card-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.05);
+  }
+}
+
+@keyframes vs-glow {
+  0%,
+  100% {
+    opacity: 0.3;
+    filter: blur(15px);
+  }
+  50% {
+    opacity: 0.6;
+    filter: blur(20px);
+  }
+}
+
+@keyframes vs-corner-appear {
+  from {
+    opacity: 0;
+    transform: scale(0.5);
+    filter: blur(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes vs-lightning {
+  0%,
+  100% {
+    opacity: 0;
+    transform: scaleY(0);
+    filter: blur(2px);
+  }
+  10%,
+  90% {
+    opacity: 0.5;
+    transform: scaleY(1);
+    filter: blur(0);
+  }
+}
+
+@keyframes vs-line-appear {
+  from {
+    transform: scaleX(0);
+    opacity: 0;
+  }
+  to {
+    transform: scaleX(1);
+    opacity: 1;
+  }
+}
+
+.vs-slide-right {
+  animation: vs-slide-right 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.vs-slide-left {
+  animation: vs-slide-left 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
+
+.vs-text-appear {
+  animation: vs-text-appear 1s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.5s;
+}
+
+.vs-card-pulse {
+  animation: vs-card-pulse 2s ease-in-out infinite;
+}
+
+.vs-glow {
+  animation: vs-glow 2s ease-in-out infinite;
+}
+
+.vs-corner-appear {
+  animation: vs-corner-appear 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  animation-delay: 0.8s;
+}
+
+.vs-lightning {
+  animation: vs-lightning 2s ease-in-out infinite;
+}
+
+.vs-line-appear {
+  animation: vs-line-appear 0.5s ease-out forwards;
+  animation-delay: 0.7s;
+}
+
+.vs-text-shadow {
+  text-shadow: 0 0 20px rgba(168, 85, 247, 0.4);
+}
