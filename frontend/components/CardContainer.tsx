@@ -47,12 +47,18 @@ type PlayerStats = {
 };
 
 type PlayerCardProps = {
-  name: string;
-  position: string;
-  rating: number;
-  club: string;
-  nationality: string;
-  stats: PlayerStats;
+  name?: string;
+  position?: string;
+  rating?: number;
+  id?: number;
+  club?: string;
+  nationality?: string;
+  stats?: {
+    attack: number;
+    defence: number;
+    pace: number;
+    passing: number;
+  };
   type: "left" | "right";
   onClick?: () => void;
 };
@@ -148,12 +154,12 @@ const Flag = ({ country }: { country: string }) => {
 };
 
 const PlayerCard = ({
-  name,
-  position,
-  rating,
-  club,
-  nationality,
-  stats,
+  name = "",
+  position = "",
+  rating = 0,
+  club = "",
+  nationality = "",
+  stats = { attack: 0, defence: 0, pace: 0, passing: 0 },
   type,
   onClick,
   theme = "neon",

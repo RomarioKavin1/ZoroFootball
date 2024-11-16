@@ -92,8 +92,8 @@ export const player6 = {
   rating: 91,
   id: 6,
 
-  club: "Barcelona",
-  nationality: "Poland",
+  club: "FC Barcelona",
+  nationality: "poland",
   stats: {
     pace: 75,
     attack: 92,

@@ -3,7 +3,7 @@ import { useEffect, useState } from "react";
 import PlayerLife from "@/components/PlayerLife";
 import PlayerCard from "@/components/CardContainer";
 import PlayerCardModal from "@/components/CardModal";
-import { player1, player2, player3, player4, player5 } from "@/util/constants";
+import { playersData } from "@/util/constants";
 import PixelTimer from "@/components/PixelTimer";
 import StatComparisonOverlay from "@/components/StatComparision";
 import VsScreen from "@/components/VsScreen";
@@ -31,7 +31,6 @@ type ComparisonResult = {
   winner: "player1" | "player2" | "draw";
   comparisons: ComparisonItem[];
 };
-
 type ComparisonItem = {
   type: string;
   player1: number;
@@ -59,14 +58,8 @@ export default function Home() {
   const [roundActive, setRoundActive] = useState(true);
   const [showComparison, setShowComparison] = useState(false);
   const [roundResult, setRoundResult] = useState<ComparisonResult | null>(null);
-  const [availableSlots, setAvailableSlots] = useState<(PlayerCard | null)[]>([
-    player4,
-    player4,
-    player5,
-    player1,
-    player2,
-    player3,
-    player1,
+  const [availableSlots, setAvailableSlots] = useState<number[]>([
+    3, 5, 11, 40, 33, 2, 9,
   ]);
 
   const [deckCount, setDeckCount] = useState(7);
@@ -104,18 +97,22 @@ export default function Home() {
       Draw Card
     </button>
   );
-
   const handleDrawCard = () => {
-    // Find first empty slot
-    const emptySlotIndex = availableSlots.findIndex((slot) => slot === null);
-    if (emptySlotIndex === -1) return; // No empty slots
+    const emptySlotIndex = availableSlots.findIndex((id) => id === 0);
+    if (emptySlotIndex === -1) return;
 
-    const newCard = getRandomCard();
+    const availableIds = playersData.map((player) => player.id);
+    const randomId =
+      availableIds[Math.floor(Math.random() * availableIds.length)];
+
     const newSlots = [...availableSlots];
-    newSlots[emptySlotIndex] = newCard;
+    newSlots[emptySlotIndex] = randomId;
     setAvailableSlots(newSlots);
   };
-
+  const getPlayerFromId = (id: number): PlayerCard | null => {
+    if (id === 0) return null;
+    return playersData.find((player) => player.id === id) || null;
+  };
   const playCard = () => {
     if (!player1SelectedCard || !isSelectionPhase) return;
 
@@ -124,17 +121,21 @@ export default function Home() {
     setIsSelectionPhase(false);
     setShowPlayer2Selection(true);
 
-    // Remove the played card from available slots when it's played
+    // Remove the played card from available slots
     const playedCardIndex = availableSlots.findIndex(
-      (card) => card?.id === player1SelectedCard.id
+      (id) => id === player1SelectedCard.id
     );
     if (playedCardIndex !== -1) {
       const newSlots = [...availableSlots];
-      newSlots[playedCardIndex] = null;
+      newSlots[playedCardIndex] = 0; // Set to empty slot
       setAvailableSlots(newSlots);
     }
 
-    const player2Card = getRandomCard();
+    // Get random card for AI
+    const availableIds = playersData.map((player) => player.id);
+    const randomId =
+      availableIds[Math.floor(Math.random() * availableIds.length)];
+    const player2Card = getPlayerFromId(randomId);
 
     setTimeout(() => {
       setPlayer2SelectedCard(player2Card);
@@ -159,9 +160,11 @@ export default function Home() {
       setShowGameWon(true); // Player won
     }
   }, [player1Life, player2Life]);
-  const getRandomCard = () => {
-    const randomIndex = Math.floor(Math.random() * availableSlots.length);
-    return availableSlots[randomIndex];
+  const getRandomCard = (): PlayerCard | null => {
+    const availableIds = playersData.map((player) => player.id);
+    const randomId =
+      availableIds[Math.floor(Math.random() * availableIds.length)];
+    return getPlayerFromId(randomId);
   };
 
   const handleTimerComplete = () => {
@@ -199,15 +202,8 @@ export default function Home() {
     setRoundActive(true);
     setShowComparison(false);
     setRoundResult(null);
-    setAvailableSlots([
-      player1,
-      player2,
-      player3,
-      player4,
-      player5,
-      player1,
-      player2,
-    ]);
+    setAvailableSlots([0, 5, 49, 40, 33, 2, 0]);
+
     setDeckCount(7);
   };
 
@@ -232,10 +228,13 @@ export default function Home() {
     }, 2000);
   };
 
-  const handleCardClick = (player: PlayerCard | null) => {
-    if (currentPlayer === 1) {
-      setSelectedCard(player);
-      setIsModalOpen(true);
+  const handleCardClick = (id: number) => {
+    if (currentPlayer === 1 && id !== 0) {
+      const player = getPlayerFromId(id);
+      if (player) {
+        setSelectedCard(player);
+        setIsModalOpen(true);
+      }
     }
   };
 
@@ -304,7 +303,7 @@ export default function Home() {
         backdrop-blur-sm
       `}
     >
-      <span className="text-purple-500/50">Empty Slot</span>
+      <span className="text-purple-500/50">AI Yet To select</span>
     </div>
   );
 
@@ -355,10 +354,12 @@ export default function Home() {
                 </div>
               </div>
 
-              {showTimer && roundActive && (
+              {showTimer && roundActive ? (
                 <div className="transform scale-75 z-50">
                   <PixelTimer duration={30} onComplete={handleTimerComplete} />
                 </div>
+              ) : (
+                <div className="transform scale-75 z-50">VS</div>
               )}
 
               <div className="transform rotate-12">
@@ -369,24 +370,22 @@ export default function Home() {
                     <EmptySlotPlayer2 />
                   )}
                 </div>
-                <div className="text-center mt-4 text-white/70 text-sm">
-                  Player 2
-                </div>
+                <div className="text-center mt-4 text-white/70 text-sm">AI</div>
               </div>
             </div>
             <div className="absolute -bottom-10 -right-56 flex space-x-4 scale-[65%]">
-              {availableSlots.map((player, index) => (
+              {availableSlots.map((id, index) => (
                 <div key={`slot-${index}`} className="relative">
-                  {player ? (
+                  {id !== 0 ? (
                     <PlayerCard
-                      {...player}
+                      {...(getPlayerFromId(id) || {})}
                       type="right"
-                      onClick={() => handleCardClick(player)}
+                      onClick={() => handleCardClick(id)}
                     />
                   ) : (
                     <div
                       className="w-64 h-96 border-4 border-dashed border-purple-500/30 rounded-xl 
-                          flex items-center justify-center bg-black/20 backdrop-blur-sm"
+            flex items-center justify-center bg-black/20 backdrop-blur-sm"
                     >
                       <span className="text-purple-500/50">Empty Slot</span>
                     </div>

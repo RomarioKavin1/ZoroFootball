@@ -62,7 +62,7 @@ const VsScreen: React.FC<VsScreenProps> = ({ player1Card, player2Card }) => {
             <div className="absolute inset-0 bg-purple-500/30 blur-lg vs-glow" />
             <PlayerCard {...player2Card} type="right" />
             <div className="absolute -bottom-8 left-1/2 transform -translate-x-1/2 text-purple-300 font-mono text-xl tracking-widest">
-              PLAYER 2
+              AI Agent
             </div>
           </div>
         </div>
