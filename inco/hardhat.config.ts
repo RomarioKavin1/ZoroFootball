@@ -150,6 +150,16 @@ const config: HardhatUserConfig = {
     localNetwork1: getChainConfig("localNetwork1"),
     multipleValidatorTestnet: getChainConfig("multipleValidatorTestnet"),
     rivest: getChainConfig("rivest"),
+    // zama: {
+    //   accounts: {
+    //     count: 10,
+    //     mnemonic,
+    //     path: "m/44'/60'/0'/0",
+    //   },
+    //   chainId: 9000,
+    //   url: "https://devnet.zama.ai",
+    //   gatewayUrl: "https://gateway.devnet.zama.ai",
+    // },
     ether: {
       url: "https://api.explorer.rivest.inco.org/api/eth-rpc",
     },
@@ -163,8 +173,8 @@ const config: HardhatUserConfig = {
         network: "ether",
         chainId: 1,
         urls: {
-          apiURL: "https://api.explorer.rivest.inco.org/api",
-          browserURL: "https://explorer.rivest.inco.org",
+          apiURL: "https://gateway.devnet.zama.ai/api",
+          browserURL: "https://gateway.devnet.zama.ai",
         },
       },
     ],
