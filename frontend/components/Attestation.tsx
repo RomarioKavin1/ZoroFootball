@@ -47,12 +47,12 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
   };
 
   return (
-    <div className="fixed bottom-0 right-0 z-0">
+    <div className="fixed bottom-0 right-10 z-0">
       <button
         onClick={() => setIsOpen(!isOpen)}
         className="bg-purple-600 text-white px-4 py-2 rounded-t-lg font-mono hover:bg-purple-500 transition-colors flex items-center gap-2"
       >
-        {isOpen ? "▼" : "▲"} Attestations
+        {isOpen ? "▼" : "▲"} TEE Attestations
         <span className="bg-purple-700 px-2 py-0.5 rounded-full text-xs">
           {attestations.length}
         </span>

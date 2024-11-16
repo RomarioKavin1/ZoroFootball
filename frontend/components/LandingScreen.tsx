@@ -54,9 +54,8 @@ const LandingScreen = ({ onStart }: { onStart: () => void }) => {
             />
 
             {/* Title text */}
-            <h1 className="relative px-16 py-8 text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-purple-500">
-              CARD HEAD
-              <span className="block text-center">FOOTBALL</span>
+            <h1 className="relative px-16 py-8 text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r bg-purple-300">
+              BLOCKS &<span className="block text-center">BALLS</span>
             </h1>
           </div>
         </div>
