@@ -59,15 +59,63 @@ export default function Home() {
   const [roundActive, setRoundActive] = useState(true);
   const [showComparison, setShowComparison] = useState(false);
   const [roundResult, setRoundResult] = useState<ComparisonResult | null>(null);
-  const [deckCards, setDeckCards] = useState([
+  const [availableSlots, setAvailableSlots] = useState<(PlayerCard | null)[]>([
+    player4,
+    player4,
+    player5,
     player1,
     player2,
     player3,
-    player4,
-    player5,
+    player1,
   ]);
+
+  const [deckCount, setDeckCount] = useState(7);
   const [showPlayer2Selection, setShowPlayer2Selection] = useState(false);
   const [isSelectionPhase, setIsSelectionPhase] = useState(true);
+  const DrawButton = ({
+    onClick,
+    disabled,
+  }: {
+    onClick: () => void;
+    disabled: boolean;
+  }) => (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`
+        px-6 
+        py-2 
+        ${
+          disabled
+            ? "bg-gray-600 cursor-not-allowed"
+            : "bg-purple-600 hover:bg-purple-500 active:bg-purple-700"
+        }
+        text-white 
+        font-mono 
+        rounded-sm 
+        transition-all 
+        duration-200 
+        border-2 
+        border-purple-400
+        disabled:border-gray-400
+        disabled:opacity-50
+      `}
+    >
+      Draw Card
+    </button>
+  );
+
+  const handleDrawCard = () => {
+    // Find first empty slot
+    const emptySlotIndex = availableSlots.findIndex((slot) => slot === null);
+    if (emptySlotIndex === -1) return; // No empty slots
+
+    const newCard = getRandomCard();
+    const newSlots = [...availableSlots];
+    newSlots[emptySlotIndex] = newCard;
+    setAvailableSlots(newSlots);
+  };
+
   const playCard = () => {
     if (!player1SelectedCard || !isSelectionPhase) return;
 
@@ -75,6 +123,16 @@ export default function Home() {
     setRoundActive(false);
     setIsSelectionPhase(false);
     setShowPlayer2Selection(true);
+
+    // Remove the played card from available slots when it's played
+    const playedCardIndex = availableSlots.findIndex(
+      (card) => card?.id === player1SelectedCard.id
+    );
+    if (playedCardIndex !== -1) {
+      const newSlots = [...availableSlots];
+      newSlots[playedCardIndex] = null;
+      setAvailableSlots(newSlots);
+    }
 
     const player2Card = getRandomCard();
 
@@ -102,8 +160,8 @@ export default function Home() {
     }
   }, [player1Life, player2Life]);
   const getRandomCard = () => {
-    const randomIndex = Math.floor(Math.random() * deckCards.length);
-    return deckCards[randomIndex];
+    const randomIndex = Math.floor(Math.random() * availableSlots.length);
+    return availableSlots[randomIndex];
   };
 
   const handleTimerComplete = () => {
@@ -129,7 +187,6 @@ export default function Home() {
       }, 1500);
     }, 2000);
   };
-
   const handleRestart = () => {
     setGameOver(false);
     setGameStarted(false);
@@ -142,7 +199,16 @@ export default function Home() {
     setRoundActive(true);
     setShowComparison(false);
     setRoundResult(null);
-    setDeckCards([player1, player2, player3, player4, player5]);
+    setAvailableSlots([
+      player1,
+      player2,
+      player3,
+      player4,
+      player5,
+      player1,
+      player2,
+    ]);
+    setDeckCount(7);
   };
 
   const handleComparisonComplete = (result: ComparisonResult) => {
@@ -150,7 +216,7 @@ export default function Home() {
     setShowComparison(false);
 
     if (result.winner === "player2") {
-      setplayer1Life((prev) => Math.max(0, prev - 1)); // Changed from -2 to -1
+      setplayer1Life((prev) => Math.max(0, prev - 1));
       setRoundMessage("Round Lost!");
     } else if (result.winner === "player1") {
       setplayer2Life((prev) => Math.max(0, prev - 1));
@@ -159,20 +225,13 @@ export default function Home() {
       setRoundMessage("Draw!");
     }
 
-    if (player1SelectedCard) {
-      const newCard = getRandomCard();
-      setDeckCards((prev) => [
-        ...prev.filter((card) => card !== player1SelectedCard),
-        newCard,
-      ]);
-    }
-
     setTimeout(() => {
       setRoundResult(null);
       setRoundMessage("");
       startNewRound();
     }, 2000);
   };
+
   const handleCardClick = (player: PlayerCard | null) => {
     if (currentPlayer === 1) {
       setSelectedCard(player);
@@ -188,6 +247,7 @@ export default function Home() {
     setRoundActive(true);
     setIsSelectionPhase(true);
     setShowPlayer2Selection(false);
+    console.log(showPlayer2Selection);
     setShowComparison(false);
     setRoundResult(null);
   };
@@ -204,16 +264,15 @@ export default function Home() {
     setIsModalOpen(false);
   };
 
-  const EmptySlot = ({ onClick }: { onClick: () => void }) => (
+  const EmptySlotPlayer1 = () => (
     <div
-      onClick={onClick}
       className={`
         w-64 h-96 
         border-4 border-dashed
         border-purple-500/30
         rounded-xl
-        flex items-center justify-center
-        cursor-pointer
+        flex flex-col items-center justify-center
+        gap-4
         bg-black/20
         backdrop-blur-sm
         transition-all
@@ -224,8 +283,28 @@ export default function Home() {
       `}
     >
       <span className="text-purple-500/50 group-hover:text-purple-500/70 transition-colors duration-200">
-        Select Card
+        Empty Slot
       </span>
+      <DrawButton
+        onClick={handleDrawCard}
+        disabled={deckCount <= 0 || !isSelectionPhase}
+      />
+    </div>
+  );
+
+  const EmptySlotPlayer2 = () => (
+    <div
+      className={`
+        w-64 h-96 
+        border-4 border-dashed
+        border-purple-500/30
+        rounded-xl
+        flex items-center justify-center
+        bg-black/20
+        backdrop-blur-sm
+      `}
+    >
+      <span className="text-purple-500/50">Empty Slot</span>
     </div>
   );
 
@@ -269,7 +348,7 @@ export default function Home() {
                     )}
                   </div>
                 ) : (
-                  <EmptySlot onClick={() => handleCardClick(null)} />
+                  <EmptySlotPlayer1 />
                 )}
                 <div className="text-center mt-4 text-white/70 text-sm">
                   Player 1
@@ -287,63 +366,32 @@ export default function Home() {
                   {player2SelectedCard ? (
                     <PlayerCard {...player2SelectedCard} type="right" />
                   ) : (
-                    <EmptySlot onClick={() => {}} />
+                    <EmptySlotPlayer2 />
                   )}
                 </div>
                 <div className="text-center mt-4 text-white/70 text-sm">
                   Player 2
                 </div>
               </div>
-
-              {showPlayer2Selection && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center">
-                  <div className="absolute inset-0 bg-black/80 backdrop-blur-sm" />
-                  <div className="relative">
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2">
-                      {!player2SelectedCard && (
-                        <>
-                          <div className="text-2xl font-mono text-purple-200 mb-8 text-center">
-                            Player 2 is choosing...
-                          </div>
-
-                          <div className="flex justify-center space-x-2 mb-8">
-                            {[0, 1, 2].map((i) => (
-                              <div
-                                key={i}
-                                className="w-3 h-3 bg-purple-500 rounded-full animate-bounce"
-                                style={{ animationDelay: `${i * 0.2}s` }}
-                              />
-                            ))}
-                          </div>
-                        </>
-                      )}
-                      {player2SelectedCard && (
-                        <div className="transform animate-fade-in">
-                          <PlayerCard {...player2SelectedCard} type="right" />
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
             </div>
-
             <div className="absolute -bottom-10 -right-56 flex space-x-4 scale-[65%]">
-              {[
-                player4,
-                player4,
-                player5,
-                player1,
-                player2,
-                player3,
-                player1,
-              ].map((player, index) => (
-                <PlayerCard
-                  key={`right-${index}`}
-                  {...player}
-                  type="right"
-                  onClick={() => handleCardClick(player)}
-                />
+              {availableSlots.map((player, index) => (
+                <div key={`slot-${index}`} className="relative">
+                  {player ? (
+                    <PlayerCard
+                      {...player}
+                      type="right"
+                      onClick={() => handleCardClick(player)}
+                    />
+                  ) : (
+                    <div
+                      className="w-64 h-96 border-4 border-dashed border-purple-500/30 rounded-xl 
+                          flex items-center justify-center bg-black/20 backdrop-blur-sm"
+                    >
+                      <span className="text-purple-500/50">Empty Slot</span>
+                    </div>
+                  )}
+                </div>
               ))}
             </div>
           </>
