@@ -11,6 +11,7 @@ import LandingScreen from "@/components/LandingScreen";
 import GameOverScreen from "@/components/GameOver";
 import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
 import { AttestationData, AttestationLog } from "@/components/Attestation";
+import { ConnectCorner } from "@/components/ConnectButton";
 
 interface PlayerCard {
   name: string;
@@ -326,6 +327,8 @@ export default function Home() {
   return (
     <div className="flex justify-center items-center">
       <div className="relative w-[1472px] h-[832px] rounded-lg overflow-hidden border-4 border-purple-500 mt-10">
+        {gameStarted && <ConnectCorner />}
+
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"
           style={{
