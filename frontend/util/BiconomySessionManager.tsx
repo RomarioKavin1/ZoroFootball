@@ -15,12 +15,10 @@ import {
 import { encodeFunctionData } from "viem";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
 import { useAccount, usePublicClient } from "wagmi";
-import { useUserWallets } from "@dynamic-labs/sdk-react-core";
 import { getSigner } from "@dynamic-labs/ethers-v6";
 import { chilizSpicy } from "./Providers";
 
-// Main Component
-const contractABI = [
+const TOKEN_ABI = [
   {
     inputs: [
       { name: "to", type: "address" },
@@ -32,36 +30,31 @@ const contractABI = [
     type: "function",
   },
 ] as const;
-export default function Home() {
+
+const TOKEN_ADDRESS =
+  "0x87dd08be032a03d937F2A8003dfa9C52821cbaB9" as `0x${string}`;
+const ENTRY_POINT = "0x00000061FEfce24A79343c27127435286BB7A4E1";
+
+export default function Hoome() {
   const { primaryWallet } = useDynamicContext();
   const { address: userAddress } = useAccount();
-  const publicClient = usePublicClient();
 
   const [smartAccount, setSmartAccount] =
     useState<BiconomySmartAccountV2 | null>(null);
   const [smartAccountAddress, setSmartAccountAddress] = useState<
     `0x${string}` | null
   >(null);
-  const [count, setCount] = useState<string | null>(null);
   const [txnHash, setTxnHash] = useState<string | null>(null);
   const [loading, setLoading] = useState<string>("");
+  const [error, setError] = useState<string | null>(null);
 
   const chainConfig = {
     chainId: chilizSpicy.id,
-    name: "Chiliz Spicy",
     providerUrl: chilizSpicy.rpcUrls.default.http[0],
-    incrementCountContractAdd:
-      "0x87dd08be032a03d937F2A8003dfa9C52821cbaB9" as `0x${string}`, // Replace with your contract address
-    biconomyPaymasterApiKey: process.env.NEXT_PUBLIC_PAYMASTER_API_KEY!,
-    explorerUrl: chilizSpicy.blockExplorers.default.url + "/tx/",
-    chain: chilizSpicy,
     bundlerUrl:
       "https://bundler.biconomy.io/api/v2/88882/nJPK7B3ru.dd7f7861-190d-41bd-af80-6877f74b8f44",
-    paymasterUrl: `https://paymaster.biconomy.io/api/v1/88882/As_4qvsmr.74ce235a-c6b0-4552-bf17-e75b423a2d1a`,
-  };
-
-  const withSponsorship = {
-    paymasterServiceData: { mode: PaymasterMode.SPONSORED },
+    paymasterUrl:
+      "https://paymaster.biconomy.io/api/v1/88882/As_4qvsmr.74ce235a-c6b0-4552-bf17-e75b423a2d1a",
   };
 
   useEffect(() => {
@@ -73,12 +66,15 @@ export default function Home() {
   const initializeSmartAccount = async () => {
     try {
       setLoading("Initializing smart account...");
+      setError(null);
+
       const bundler = await createBundler({
         bundlerUrl: chainConfig.bundlerUrl,
         userOpReceiptMaxDurationIntervals: { [chainConfig.chainId]: 120000 },
         userOpReceiptIntervals: { [chainConfig.chainId]: 3000 },
-        entryPointAddress: "0x00000061FEfce24A79343c27127435286BB7A4E1",
+        entryPointAddress: ENTRY_POINT,
       });
+
       const signer = await getSigner(primaryWallet!);
       const smartWallet = await createSmartAccountClient({
         signer,
@@ -87,7 +83,7 @@ export default function Home() {
         rpcUrl: chainConfig.providerUrl,
         chainId: chainConfig.chainId,
         bundlerUrl: chainConfig.bundlerUrl,
-        entryPointAddress: "0x00000061FEfce24A79343c27127435286BB7A4E1",
+        entryPointAddress: ENTRY_POINT,
       });
 
       setSmartAccount(smartWallet);
@@ -96,22 +92,29 @@ export default function Home() {
       setLoading("");
     } catch (error) {
       console.error("Error initializing smart account:", error);
-      setLoading("Failed to initialize smart account");
+      setError("Failed to initialize smart account");
+      setLoading("");
     }
   };
 
-  const createSessionWithSponsorship = async () => {
-    if (!smartAccount) return;
+  const createMintSession = async () => {
+    if (!smartAccount) {
+      setError("Smart account not initialized");
+      return;
+    }
+
     try {
       setLoading("Creating session...");
+      setError(null);
+
       const { sessionKeyAddress, sessionStorageClient } =
-        await createSessionKeyEOA(smartAccount, chainConfig.chain);
+        await createSessionKeyEOA(smartAccount, chilizSpicy);
 
       const policy: Policy[] = [
         {
           sessionKeyAddress,
-          contractAddress: chainConfig.incrementCountContractAdd,
-          functionSelector: "increment()",
+          contractAddress: TOKEN_ADDRESS,
+          functionSelector: "mint(address,uint256)",
           rules: [],
           interval: {
             validUntil: 0,
@@ -121,11 +124,11 @@ export default function Home() {
         },
       ];
 
-      const { wait, session } = await createSession(
+      const { wait } = await createSession(
         smartAccount,
         policy,
         sessionStorageClient,
-        withSponsorship
+        { paymasterServiceData: { mode: PaymasterMode.SPONSORED } }
       );
 
       const {
@@ -133,86 +136,98 @@ export default function Home() {
         success,
       } = await wait();
       console.log("Session created:", success, transactionHash);
+      setTxnHash(transactionHash);
       setLoading("");
+      return true;
     } catch (error) {
       console.error("Error creating session:", error);
-      setLoading("Failed to create session");
+      setError("Failed to create session");
+      setLoading("");
+      return false;
     }
   };
 
-  const incrementCount = async () => {
-    if (!smartAccount || !smartAccountAddress) return;
+  const mintTokens = async () => {
+    if (!smartAccount || !smartAccountAddress) {
+      setError("Smart account not initialized");
+      return;
+    }
+
     try {
-      setLoading("Incrementing count...");
+      setLoading("Creating session and minting tokens...");
+      setError(null);
+
+      // Create session first
+      const sessionCreated = await createMintSession();
+      if (!sessionCreated) {
+        throw new Error("Failed to create session");
+      }
+
       const emulatedUsersSmartAccount = await createSessionSmartAccountClient(
         {
           accountAddress: smartAccountAddress,
           bundlerUrl: chainConfig.bundlerUrl,
           paymasterUrl: chainConfig.paymasterUrl,
           chainId: chainConfig.chainId,
-          entryPointAddress: "0x00000061FEfce24A79343c27127435286BB7A4E1",
+          entryPointAddress: ENTRY_POINT,
         },
         smartAccountAddress
       );
 
-      const minTx = {
-        to: chainConfig.incrementCountContractAdd,
+      // Amount to mint (1 token = 1e18)
+      const amount = BigInt("1000000000000000000");
+
+      const transaction = {
+        to: TOKEN_ADDRESS,
         data: encodeFunctionData({
-          abi: contractABI,
+          abi: TOKEN_ABI,
           functionName: "mint",
-          args: ["0x89c27f76EEF3e09D798FB06a66Dd461d7d21f111", BigInt(1)],
+          args: [smartAccountAddress, amount],
         }),
       };
 
       const params = await getSingleSessionTxParams(
         smartAccountAddress,
-        chainConfig.chain,
+        chilizSpicy,
         0
       );
 
-      const { wait } = await emulatedUsersSmartAccount.sendTransaction(minTx, {
-        ...params,
-        ...withSponsorship,
-      });
+      const { wait } = await emulatedUsersSmartAccount.sendTransaction(
+        transaction,
+        {
+          ...params,
+          paymasterServiceData: { mode: PaymasterMode.SPONSORED },
+        }
+      );
 
       const {
         receipt: { transactionHash },
         success,
       } = await wait();
       setTxnHash(transactionHash);
-      setLoading("");
+      setLoading("Tokens minted successfully!");
+      setTimeout(() => setLoading(""), 2000);
     } catch (error) {
-      console.error("Error incrementing count:", error);
-      setLoading("Transaction failed");
-    }
-  };
-
-  const getCount = async () => {
-    try {
-      setLoading("Getting count...");
-      const data = await publicClient!.readContract({
-        address: chainConfig.incrementCountContractAdd,
-        abi: contractABI,
-        functionName: "getCount",
-      });
-      // setCount(data?.toString() || null);
+      console.error("Error minting tokens:", error);
+      setError("Failed to mint tokens");
       setLoading("");
-    } catch (error) {
-      console.error("Error getting count:", error);
-      setLoading("Failed to get count");
     }
   };
 
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-start gap-8 p-24">
       <div className="text-[4rem] font-bold text-orange-400">
-        Biconomy Chiliz
+        ACMilan Token Minter
       </div>
 
       {loading && (
-        <div className="text-white bg-orange-500 px-4 apy-2 rounded">
+        <div className="text-white bg-orange-500 px-4 py-2 rounded">
           {loading}
         </div>
+      )}
+
+      {error && (
+        <div className="text-white bg-red-500 px-4 py-2 rounded">{error}</div>
       )}
 
       {!smartAccount && primaryWallet && (
@@ -220,50 +235,31 @@ export default function Home() {
       )}
 
       {smartAccount && (
-        <>
-          <span>Smart Account Address</span>
-          <span>{smartAccountAddress}</span>
-          <span>Network: {chainConfig.name}</span>
-
-          <div className="flex flex-row justify-center items-start gap-4">
-            <button
-              className="w-[10rem] h-[3rem] bg-orange-300 text-black font-bold rounded-lg"
-              onClick={createSessionWithSponsorship}
-            >
-              Create Session
-            </button>
-
-            <div className="flex flex-col justify-start items-center gap-2">
-              <button
-                className="w-[10rem] h-[3rem] bg-orange-300 text-black font-bold rounded-lg"
-                onClick={incrementCount}
-              >
-                Increment Count
-              </button>
-              {txnHash && (
-                <a
-                  target="_blank"
-                  href={`${chainConfig.explorerUrl}${txnHash}`}
-                  rel="noopener noreferrer"
-                >
-                  <span className="text-white font-bold underline">
-                    View Transaction
-                  </span>
-                </a>
-              )}
-            </div>
+        <div className="flex flex-col items-center gap-4">
+          <div className="text-center">
+            <div className="font-bold">Smart Account Address:</div>
+            <div className="font-mono">{smartAccountAddress}</div>
           </div>
 
-          <div className="flex flex-row justify-center items-center gap-4">
-            <button
-              className="w-[10rem] h-[3rem] bg-orange-300 text-black font-bold rounded-lg"
-              onClick={getCount}
+          <button
+            className="w-[10rem] h-[3rem] bg-orange-300 text-black font-bold rounded-lg disabled:opacity-50"
+            onClick={mintTokens}
+            disabled={!!loading}
+          >
+            Mint Tokens
+          </button>
+
+          {txnHash && (
+            <a
+              target="_blank"
+              href={`${chilizSpicy.blockExplorers.default.url}/tx/${txnHash}`}
+              rel="noopener noreferrer"
+              className="text-blue-400 hover:text-blue-500 underline"
             >
-              Get Count Value
-            </button>
-            <span>{count}</span>
-          </div>
-        </>
+              View Transaction
+            </a>
+          )}
+        </div>
       )}
     </main>
   );

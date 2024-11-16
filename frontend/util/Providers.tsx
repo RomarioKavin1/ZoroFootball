@@ -1,4 +1,3 @@
-// app/providers.tsx
 "use client";
 import {
   DynamicContextProvider,
@@ -6,8 +5,7 @@ import {
 } from "@dynamic-labs/sdk-react-core";
 import { EthereumWalletConnectors } from "@dynamic-labs/ethereum";
 import { Chain, http } from "viem";
-// import { BiconomyProvider } from "@biconomy/use-aa";
-import { flowTestnet } from "viem/chains";
+import { chiliz, flowTestnet } from "viem/chains";
 import { WagmiProvider, createConfig } from "wagmi";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { DynamicWagmiConnector } from "@dynamic-labs/wagmi-connector";
@@ -60,14 +58,12 @@ export const chilizSpicy = {
   testnet: true,
 } as const satisfies Chain;
 export function Providers({ children }: { children: React.ReactNode }) {
-  const biconomyPaymasterApiKey =
-    process.env.NEXT_PUBLIC_PAYMASTER_API_KEY || "";
-  const bundlerUrl = process.env.NEXT_PUBLIC_BUNDLER_URL || "";
   const config = createConfig({
-    chains: [chilizSpicy, flowTestnet],
+    chains: [chilizSpicy, flowTestnet, chiliz],
     transports: {
       [chilizSpicy.id]: http(),
       [flowTestnet.id]: http(),
+      [chiliz.id]: http(),
     },
   });
   const queryClient = new QueryClient();
@@ -83,17 +79,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
     >
       <WagmiProvider config={config}>
         <QueryClientProvider client={queryClient}>
-          <DynamicWagmiConnector>
-            {/* <BiconomyProvider
-              config={{
-                biconomyPaymasterApiKey,
-                bundlerUrl,
-              }}
-              queryClient={queryClient}
-            > */}
-            {children}
-            {/* </BiconomyProvider> */}
-          </DynamicWagmiConnector>
+          <DynamicWagmiConnector>{children}</DynamicWagmiConnector>
         </QueryClientProvider>
       </WagmiProvider>
     </DynamicContextProvider>
