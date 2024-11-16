@@ -34,12 +34,12 @@ async function main() {
     },
   ];
   const coreContract = new ethers.Contract(
-    "0xCc22bA4DCC4E679861BeEcC2F8394F345D139cfa",
+    "0x197a5246bC00dDAEB2ed9D8D9F923Cdb0Cd281Af",
     abi,
     signer
   );
   console.log("MakeMove ...");
-  const tx = await coreContract._makeMove(0, 0, false);
+  const tx = await coreContract._makeMove(0, 5, true, { gasLimit: 5000000 });
 
   console.log("Tx: ", networks.incoTestnet.blockExplorer + "/tx/" + tx.hash);
 }

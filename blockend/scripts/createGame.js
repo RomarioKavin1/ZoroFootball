@@ -40,15 +40,15 @@ async function main() {
     },
   ];
   const coreContract = new ethers.Contract(
-    "0x7130f3cAD26E8e8B4189138685482c7ca65968f5",
+    "0x197a5246bC00dDAEB2ed9D8D9F923Cdb0Cd281Af",
     abi,
     signer
   );
   console.log("Create Game ...");
   const tx = await coreContract._createGame(
-    "0x7130f3cAD26E8e8B4189138685482c7ca65968f5",
+    "0x3D0efaA1BC3e5a8715750d1c2Fa2fBC9050edB40",
     1,
-    2
+    0
   );
 
   console.log("Tx: ", networks.incoTestnet.blockExplorer + "/tx/" + tx.hash);

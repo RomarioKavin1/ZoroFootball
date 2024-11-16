@@ -1,4 +1,4 @@
-const { networks } = require("../../networks");
+const { networks, aiAgent } = require("../../networks");
 
 task("deploy-ai", "Deploys the AI Client contract")
   .addOptionalParam(
@@ -19,6 +19,7 @@ task("deploy-ai", "Deploys the AI Client contract")
       networks.baseSepolia.mailbox,
       networks.incoTestnet.core,
       networks.baseSepolia.pythEntropy,
+      aiAgent,
     ];
 
     const coreContract = await coreContractFactory.deploy(...args);

@@ -1,6 +1,6 @@
 const { networks, nativeToUsdPriceFeedId } = require("../../networks");
 
-task("deploy-ai", "Deploys the AI Client contract")
+task("deploy-client", "Deploys the User Client contract")
   .addOptionalParam(
     "verify",
     "Set to true to verify contract",
@@ -16,12 +16,14 @@ task("deploy-ai", "Deploys the AI Client contract")
     const coreContractFactory = await ethers.getContractFactory("ZoroClient");
 
     const args = [
-      networks[network.name].pyth,
+      networks[network.name].pythFeed,
       networks[network.name].pythEntropy,
       nativeToUsdPriceFeedId,
       networks[network.name].mailbox,
       networks.incoTestnet.core,
     ];
+
+    console.log(args);
 
     const coreContract = await coreContractFactory.deploy(...args);
 
