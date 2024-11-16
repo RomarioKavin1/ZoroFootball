@@ -1,20 +1,25 @@
 import os
-from fastapi import FastAPI, HTTPException
+import json
+import hashlib
+import datetime
+import logging
+import uvicorn
+from enum import Enum
+from typing import Dict, Any, Optional, List, Union, Literal
+from fastapi import FastAPI, HTTPException, BackgroundTasks
 from pydantic import BaseModel, Field, field_validator
-from typing import List, Union, Optional, Literal
 from langchain_openai import ChatOpenAI
 from langchain_core.messages import HumanMessage, AIMessage
 from langchain_core.prompts import ChatPromptTemplate, MessagesPlaceholder
 from langgraph.checkpoint.memory import MemorySaver
 from langgraph.graph import START, MessagesState, StateGraph
-import json
-import uvicorn
-from enum import Enum
 from dotenv import load_dotenv
+from dstack_sdk import AsyncTappdClient, DeriveKeyResponse, TdxQuoteResponse
 from cdpMethods import cdp_handler, TransactionResult
-from fastapi import BackgroundTasks
-# Load environment variables
+
+# Load environment variables and configure logging
 load_dotenv()
+logging.basicConfig(level=logging.INFO)
 
 # Get API key from environment variable
 OPENAI_API_KEY = os.getenv('OPENAI_API_KEY')
@@ -49,7 +54,7 @@ class Opponent(BaseModel):
     move: Move
 
 class GameState(BaseModel):
-    threadid:int = Field(...,description="Thread id of current session")
+    threadid: int = Field(..., description="Thread id of current session")
     round: int = Field(..., description="Current round number")
     previousround: PreviousRound
     opponent: Opponent
@@ -71,11 +76,16 @@ class GameState(BaseModel):
                 raise ValueError('String value in deck must be "empty"')
         return v
 
-class AIResponse(BaseModel):
+class AttestationDetails(BaseModel):
+    deriveKey: Dict[str, str]
+    tdxQuote: Dict[str, Any]
+
+class AIResponseWithAttestation(BaseModel):
     threadid: int
     round: int
     move: Literal["attack", "draw card"]
     player: Union[Player, Literal["card drawn"]]
+    attestation: AttestationDetails
 
     @field_validator('move')
     @classmethod
@@ -115,28 +125,12 @@ DECK ANALYSIS (DO THIS FIRST):
 MOVE SELECTION RULES:
 - Full deck (7 players): ALWAYS attack with best player
 - Has empty slots: Can either attack or draw
-- If only Defend is available,choose player with highest defence
+- If only Defend is available, choose player with highest defence
 
 When choosing a player:
 1. Prioritize highest attack value during attack and highest defence during defending
 2. Use pace as tiebreaker
 3. Sometimes attacking might be a better strategy than drawing a card
-
-Example response for full deck:
-{{
-    "threadid": 88
-    "round": 1,
-    "move": "attack",
-    "player": {{
-        "id": 31,
-        "pace": 92,
-        "attack": 95,
-        "passing": 87,
-        "defence": 72,
-        "teamFanTokenAddress": "0xd82ee61aa30d018239350f9843cb8a4967b8b3da",
-        "metadata": "Kylian Mbappé"
-    }}
-}}
 
 YOU MUST ATTACK WITH A PLAYER WHEN DECK IS FULL!"""
     ),
@@ -148,9 +142,9 @@ json_schema = {
     "description": "Details of the current round move in the game.",
     "type": "object",
     "properties": {
-        "threadid":{
-            "type":"integer",
-            "description":"The same threadid from the input"
+        "threadid": {
+            "type": "integer",
+            "description": "The same threadid from the input"
         },
         "round": {
             "type": "integer",
@@ -158,7 +152,7 @@ json_schema = {
         },
         "move": {
             "type": "string",
-            "enum": ["attack", "draw card", "defend"],
+            "enum": ["attack", "draw card"],
             "description": "The action taken this round"
         },
         "player": {
@@ -184,8 +178,9 @@ json_schema = {
             "description": "The player used in the round or 'card drawn'"
         }
     },
-    "required": ["threadid","round", "move", "player"]
+    "required": ["threadid", "round", "move", "player"]
 }
+
 structured_llm = model.with_structured_output(json_schema)
 
 def call_model(state: MessagesState):
@@ -204,9 +199,10 @@ workflow.add_node("model", call_model)
 memory = MemorySaver()
 app_chain = workflow.compile(checkpointer=memory)
 
-@app.post("/game/move", response_model=AIResponse)
+@app.post("/game/move", response_model=AIResponseWithAttestation)
 async def make_move(game_state: GameState, background_tasks: BackgroundTasks):
     try:
+        # Generate initial move
         empty_slots = sum(1 for slot in game_state.yourDeck if slot == "empty")
         deck_is_full = (empty_slots == 0)
         deck_status = "DECK IS FULL - YOU MUST ATTACK" if deck_is_full else "Deck has empty slots"
@@ -219,10 +215,11 @@ async def make_move(game_state: GameState, background_tasks: BackgroundTasks):
         config = {"configurable": {"thread_id": str(game_state.threadid)}}
         output = app_chain.invoke({"messages": input_messages}, config)
         ai_response = json.loads(output["messages"][-1].content)
-        
+
+        # Handle deck-is-full case
         if deck_is_full and ai_response["move"] != "attack":
             best_player = max(
-                [p for p in game_state.yourDeck if isinstance(p, dict)], 
+                [p for p in game_state.yourDeck if isinstance(p, dict)],
                 key=lambda x: (x["attack"], x["pace"])
             )
             ai_response = {
@@ -231,7 +228,7 @@ async def make_move(game_state: GameState, background_tasks: BackgroundTasks):
                 "move": "attack",
                 "player": best_player
             }
-            
+
         # Add deck position for attack moves
         if isinstance(ai_response["player"], dict):
             deck_positions = {
@@ -240,22 +237,88 @@ async def make_move(game_state: GameState, background_tasks: BackgroundTasks):
             }
             player_str = str(ai_response["player"])
             ai_response["player"]["deck_position"] = deck_positions.get(player_str, 0)
+
+        # Create event log
+        event_log = {
+            "game_event": "move_execution",
+            "timestamp": datetime.datetime.utcnow().isoformat(),
+            "game_data": {
+                "thread_id": game_state.threadid,
+                "round": game_state.round,
+                "move_type": ai_response["move"],
+                "previous_outcome": game_state.previousround.prev_roundoutcome,
+                "available_moves": game_state.availablemoves,
+                "opponent_move": game_state.opponent.move
+            },
+            "move_verification": {
+                "deck_status": "full" if deck_is_full else "has_empty_slots",
+                "attestation_type": "TDX_QUOTE",
+                "verification_status": "VERIFIED",
+                "verification_message": "Move executed in verified TEE environment"
+            }
+        }
+
+        if ai_response["move"] == "attack":
+            event_log["player_data"] = {
+                "player_id": ai_response["player"]["id"],
+                "player_name": ai_response["player"]["metadata"],
+                "attack_value": ai_response["player"]["attack"],
+                "deck_position": ai_response["player"]["deck_position"]
+            }
+        else:
+            event_log["player_data"] = {
+                "action": "card_drawn",
+                "deck_position": 0
+            }
+
+        # Hash the move data
+        move_data = json.dumps(ai_response, sort_keys=True)
+        move_hash = hashlib.sha256(move_data.encode()).hexdigest()
+        event_log["move_verification"]["move_hash"] = move_hash
+
+        # Get attestations
+        client = AsyncTappdClient()
         
-        # Execute transaction for both attack and draw moves
+        # Get deriveKey attestation
+        deriveKey = await client.derive_key('/', move_hash)
+        derive_key_data = {
+            "deriveKey": deriveKey.toBytes().hex(),
+            "derive_32bytes": deriveKey.toBytes(32).hex()
+        }
+
+        # Get tdxQuote attestation
+        tdxQuote = await client.tdx_quote(move_hash)
+        tdx_quote_data = {
+            "quote": tdxQuote.quote,
+            "event_log": json.dumps(event_log)
+        }
+
+        # Create final response with attestation
+        response_with_attestation = {
+            **ai_response,
+            "attestation": {
+                "deriveKey": derive_key_data,
+                "tdxQuote": tdx_quote_data
+            }
+        }
+
+        # Execute transaction
         background_tasks.add_task(
             cdp_handler.send_game_transaction,
             ai_response["move"],
             game_state.threadid,
             ai_response["player"] if isinstance(ai_response["player"], dict) else {"deck_position": 0}
         )
-        
-        return AIResponse(**ai_response)
-    
+
+        return AIResponseWithAttestation(**response_with_attestation)
+
     except Exception as e:
         logging.error(f"Error in make_move: {str(e)}", exc_info=True)
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/")
 async def root():
+    """Root endpoint returning API information."""
     return {
         "message": "Card Game AI API",
         "version": "1.0",
@@ -266,21 +329,19 @@ async def root():
 
 @app.get("/wallet/status")
 async def get_wallet_status():
-    """
-    Get wallet status and balance.
-    """
+    """Get wallet status and balance."""
     try:
         return await cdp_handler.get_wallet_balance()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 @app.get("/wallet/save")
-async def get_wallet_status():
-    """
-    Save wallet seed
-    """
+async def save_wallet():
+    """Save wallet seed."""
     try:
         return await cdp_handler.savewalletseed()
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)

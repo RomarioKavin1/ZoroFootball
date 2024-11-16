@@ -26,5 +26,5 @@ RUN mkdir -p /app/data
 
 EXPOSE 8000
 
-# Update the command to point to the correct path
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+# Run with environment variable set at runtime
+CMD DSTACK_SIMULATOR_ENDPOINT=http://host.docker.internal:8090 uvicorn main:app --host 0.0.0.0 --port 8000 --reload
