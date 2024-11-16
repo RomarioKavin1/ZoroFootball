@@ -1,0 +1,26 @@
+specVersion: 1.0.0
+indexerHints:
+  prune: auto
+schema:
+  file: ./schema.graphql
+dataSources:
+  - kind: ethereum
+    name: ZoroClient
+    network: base-sepolia
+    source:
+      abi: ZoroClient
+      address: "0xBE3D118760d9be86688D88929c2122cEc9Ec4635"
+      startBlock: 17912960
+    mapping:
+      kind: ethereum/events
+      apiVersion: 0.0.7
+      language: wasm/assemblyscript
+      entities:
+        - Transfer
+      abis:
+        - name: WETH
+          file: ./abis/Token.json
+      eventHandlers:
+        - event: Transfer(indexed address,indexed address,uint256)
+          handler: handleWETHTransfer
+      file: ./src/client.ts

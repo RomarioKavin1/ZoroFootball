@@ -11,6 +11,8 @@ import {
   createSessionSmartAccountClient,
   getSingleSessionTxParams,
   createBundler,
+  ENTRYPOINT_ADDRESSES,
+  Bundler,
 } from "@biconomy/account";
 import { encodeFunctionData } from "viem";
 import { useDynamicContext } from "@dynamic-labs/sdk-react-core";
@@ -21,8 +23,8 @@ import { chilizSpicy } from "./Providers";
 const TOKEN_ABI = [
   {
     inputs: [
-      { name: "to", type: "address" },
-      { name: "amount", type: "uint256" },
+      { type: "address", name: "to", internalType: "address" },
+      { type: "uint256", name: "amount", internalType: "uint256" },
     ],
     name: "mint",
     outputs: [],
@@ -30,10 +32,15 @@ const TOKEN_ABI = [
     type: "function",
   },
 ] as const;
+const ENTRY_POINT = "0x00000061FEfce24A79343c27127435286BB7A4E1";
 
+const withSponsorship = {
+  paymasterServiceData: {
+    mode: PaymasterMode.SPONSORED,
+  },
+};
 const TOKEN_ADDRESS =
   "0x87dd08be032a03d937F2A8003dfa9C52821cbaB9" as `0x${string}`;
-const ENTRY_POINT = "0x00000061FEfce24A79343c27127435286BB7A4E1";
 
 export default function Hoome() {
   const { primaryWallet } = useDynamicContext();
@@ -47,7 +54,7 @@ export default function Hoome() {
   const [txnHash, setTxnHash] = useState<string | null>(null);
   const [loading, setLoading] = useState<string>("");
   const [error, setError] = useState<string | null>(null);
-
+  const [bundlerr, setBundlerr] = useState<Bundler | null>();
   const chainConfig = {
     chainId: chilizSpicy.id,
     providerUrl: chilizSpicy.rpcUrls.default.http[0],
@@ -68,21 +75,20 @@ export default function Hoome() {
       setLoading("Initializing smart account...");
       setError(null);
 
+      const signer = await getSigner(primaryWallet!);
       const bundler = await createBundler({
         bundlerUrl: chainConfig.bundlerUrl,
         userOpReceiptMaxDurationIntervals: { [chainConfig.chainId]: 120000 },
         userOpReceiptIntervals: { [chainConfig.chainId]: 3000 },
         entryPointAddress: ENTRY_POINT,
       });
-
-      const signer = await getSigner(primaryWallet!);
+      setBundlerr(bundler);
       const smartWallet = await createSmartAccountClient({
         signer,
         biconomyPaymasterApiKey: process.env.NEXT_PUBLIC_PAYMASTER_API_KEY!,
         bundler: bundler,
         rpcUrl: chainConfig.providerUrl,
         chainId: chainConfig.chainId,
-        bundlerUrl: chainConfig.bundlerUrl,
         entryPointAddress: ENTRY_POINT,
       });
 
@@ -98,23 +104,18 @@ export default function Hoome() {
   };
 
   const createMintSession = async () => {
-    if (!smartAccount) {
-      setError("Smart account not initialized");
-      return;
-    }
-
+    if (!smartAccount) return;
     try {
       setLoading("Creating session...");
-      setError(null);
-
       const { sessionKeyAddress, sessionStorageClient } =
         await createSessionKeyEOA(smartAccount, chilizSpicy);
 
+      // This matches the working example's simpler format
       const policy: Policy[] = [
         {
           sessionKeyAddress,
           contractAddress: TOKEN_ADDRESS,
-          functionSelector: "mint(address,uint256)",
+          functionSelector: "mint(address,uint256)", // keccak256(mint(address,uint256))
           rules: [],
           interval: {
             validUntil: 0,
@@ -128,92 +129,69 @@ export default function Hoome() {
         smartAccount,
         policy,
         sessionStorageClient,
+
         { paymasterServiceData: { mode: PaymasterMode.SPONSORED } }
       );
 
       const {
         receipt: { transactionHash },
-        success,
       } = await wait();
-      console.log("Session created:", success, transactionHash);
       setTxnHash(transactionHash);
       setLoading("");
-      return true;
     } catch (error) {
       console.error("Error creating session:", error);
-      setError("Failed to create session");
-      setLoading("");
-      return false;
+      setLoading("Failed to create session");
     }
   };
 
   const mintTokens = async () => {
-    if (!smartAccount || !smartAccountAddress) {
-      setError("Smart account not initialized");
-      return;
-    }
-
+    if (!smartAccount || !smartAccountAddress) return;
     try {
-      setLoading("Creating session and minting tokens...");
-      setError(null);
-
-      // Create session first
-      const sessionCreated = await createMintSession();
-      if (!sessionCreated) {
-        throw new Error("Failed to create session");
-      }
+      setLoading("Minting tokens...");
 
       const emulatedUsersSmartAccount = await createSessionSmartAccountClient(
         {
           accountAddress: smartAccountAddress,
+          bundler: bundlerr!,
           bundlerUrl: chainConfig.bundlerUrl,
           paymasterUrl: chainConfig.paymasterUrl,
           chainId: chainConfig.chainId,
           entryPointAddress: ENTRY_POINT,
         },
+
         smartAccountAddress
       );
-
-      // Amount to mint (1 token = 1e18)
-      const amount = BigInt("1000000000000000000");
-
-      const transaction = {
+      console.log("smartacc address", smartAccountAddress);
+      console.log("emulatedUsersSmartAccount", emulatedUsersSmartAccount);
+      const minTx = {
         to: TOKEN_ADDRESS,
         data: encodeFunctionData({
           abi: TOKEN_ABI,
           functionName: "mint",
-          args: [smartAccountAddress, amount],
+          args: [smartAccountAddress, BigInt("1")],
         }),
       };
-
+      console.log("minTx", minTx);
       const params = await getSingleSessionTxParams(
         smartAccountAddress,
-        chilizSpicy,
-        0
+        chilizSpicy
       );
-
-      const { wait } = await emulatedUsersSmartAccount.sendTransaction(
-        transaction,
-        {
-          ...params,
-          paymasterServiceData: { mode: PaymasterMode.SPONSORED },
-        }
-      );
-
+      console.log("params", params);
+      const { wait } = await emulatedUsersSmartAccount.sendTransaction(minTx, {
+        ...params,
+        ...withSponsorship,
+      });
+      console.log("wait", wait);
       const {
         receipt: { transactionHash },
-        success,
       } = await wait();
       setTxnHash(transactionHash);
-      setLoading("Tokens minted successfully!");
-      setTimeout(() => setLoading(""), 2000);
+      setLoading("");
     } catch (error) {
       console.error("Error minting tokens:", error);
-      setError("Failed to mint tokens");
-      setLoading("");
+      setLoading("Transaction failed");
     }
   };
-
   return (
     <main className="flex min-h-screen w-full flex-col items-center justify-start gap-8 p-24">
       <div className="text-[4rem] font-bold text-orange-400">
@@ -227,7 +205,15 @@ export default function Hoome() {
       )}
 
       {error && (
-        <div className="text-white bg-red-500 px-4 py-2 rounded">{error}</div>
+        <div className="text-white bg-red-500 px-4 py-2 rounded mb-4">
+          {error}
+          <button
+            className="ml-2 underline text-white"
+            onClick={() => setError(null)}
+          >
+            Dismiss
+          </button>
+        </div>
       )}
 
       {!smartAccount && primaryWallet && (
@@ -235,29 +221,54 @@ export default function Hoome() {
       )}
 
       {smartAccount && (
-        <div className="flex flex-col items-center gap-4">
-          <div className="text-center">
-            <div className="font-bold">Smart Account Address:</div>
-            <div className="font-mono">{smartAccountAddress}</div>
+        <div className="flex flex-col items-center gap-6">
+          <div className="text-center p-4 x` rounded-lg">
+            <div className="font-bold text-gray-300 mb-2">
+              Smart Account Address:
+            </div>
+            <div className="font-mono text-white break-all">
+              {smartAccountAddress}
+            </div>
           </div>
 
-          <button
-            className="w-[10rem] h-[3rem] bg-orange-300 text-black font-bold rounded-lg disabled:opacity-50"
-            onClick={mintTokens}
-            disabled={!!loading}
-          >
-            Mint Tokens
-          </button>
+          <div className="flex flex-col gap-4 w-full max-w-md">
+            <div className="flex flex-col items-center gap-2 p-4 bg-gray-800 rounded-lg">
+              <h3 className="text-white font-bold mb-2">
+                Step 1: Create Session
+              </h3>
+              <button
+                className="w-full py-3 bg-orange-300 text-black font-bold rounded-lg disabled:opacity-50 hover:bg-orange-400 transition-colors"
+                onClick={createMintSession}
+                disabled={!!loading}
+              >
+                Create Mint Session
+              </button>
+            </div>
+
+            <div className="flex flex-col items-center gap-2 p-4 bg-gray-800 rounded-lg">
+              <h3 className="text-white font-bold mb-2">Step 2: Mint Token</h3>
+              <button
+                className="w-full py-3 bg-orange-300 text-black font-bold rounded-lg disabled:opacity-50 hover:bg-orange-400 transition-colors"
+                onClick={mintTokens}
+                disabled={!!loading}
+              >
+                Mint 1 Token
+              </button>
+            </div>
+          </div>
 
           {txnHash && (
-            <a
-              target="_blank"
-              href={`${chilizSpicy.blockExplorers.default.url}/tx/${txnHash}`}
-              rel="noopener noreferrer"
-              className="text-blue-400 hover:text-blue-500 underline"
-            >
-              View Transaction
-            </a>
+            <div className="text-center p-4 rounded-lg">
+              <div className="text-gray-300 mb-2">Latest Transaction:</div>
+              <a
+                target="_blank"
+                href={`${chilizSpicy.blockExplorers.default.url}/tx/${txnHash}`}
+                rel="noopener noreferrer"
+                className="text-blue-400 hover:text-blue-500 underline font-mono break-all"
+              >
+                {txnHash}
+              </a>
+            </div>
           )}
         </div>
       )}
