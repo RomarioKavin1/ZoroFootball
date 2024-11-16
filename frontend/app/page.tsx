@@ -202,7 +202,7 @@ export default function Home() {
     setRoundActive(true);
     setShowComparison(false);
     setRoundResult(null);
-    setAvailableSlots([0, 5, 49, 40, 33, 2, 0]);
+    setAvailableSlots([3, 5, 11, 40, 33, 2, 9]);
 
     setDeckCount(7);
   };
