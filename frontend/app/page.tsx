@@ -9,6 +9,7 @@ import StatComparisonOverlay from "@/components/StatComparision";
 import VsScreen from "@/components/VsScreen";
 import LandingScreen from "@/components/LandingScreen";
 import GameOverScreen from "@/components/GameOver";
+import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
 
 interface PlayerCard {
   name: string;

@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
 import "./globals.css";
+import { Providers } from "@/util/Providers";
 const minecraft = localFont({
   src: "./fonts/Minecraft.ttf",
   variable: "--font-minecraft",
@@ -17,7 +18,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={minecraft.className}>{children}</body>
+      <body className={minecraft.className}>
+        <Providers>{children}</Providers>
+      </body>
     </html>
   );
 }
