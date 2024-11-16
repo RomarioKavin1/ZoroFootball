@@ -1,6 +1,7 @@
 import React from "react";
 import { Swords, Shield, Zap, Share2 } from "lucide-react";
-import { clubToId, countryToCode } from "@/util/constants";
+import { countryToCode } from "@/util/constants";
+import { teams } from "@/util/constants";
 const colorSchemes = {
   classic: {
     left: "from-yellow-500 to-yellow-700",
@@ -14,7 +15,7 @@ const colorSchemes = {
     right: "from-cyan-400 to-blue-600",
     statBar: "bg-white/60",
     text: "text-white",
-    accent: "bg-black/80",
+    accent: "bg-black",
   },
   retro: {
     left: "from-orange-400 to-red-700",
@@ -55,9 +56,12 @@ type PlayerCardProps = {
   type: "left" | "right";
   onClick?: () => void;
 };
-
+const getTeamIdFromTeams = (clubName: string) => {
+  const team = teams.find(([_, name]) => name === clubName);
+  return team ? team[2] : null; // Return the ID (third element) if found, null otherwise
+};
 const TeamLogo = ({ club }: { club: string }) => {
-  const teamId = clubToId[club];
+  const teamId = getTeamIdFromTeams(club);
 
   if (!teamId) {
     console.warn(`No team ID found for: ${club}`);
@@ -214,11 +218,16 @@ const PlayerCard = ({
         </div>
       </div>
 
-      <div className="absolute top-20 left-1/2 transform -translate-x-1/2">
+      <div className="absolute top-5 left-1/2 transform -translate-x-1/2">
         <div className="relative">
-          <div className="absolute inset-0 bg-black/20 transform translate-x-1 translate-y-1" />
-          <div className="w-28 h-28 bg-black/40 flex items-center justify-center relative">
-            <Shield size={40} className={`${scheme.text}/70`} />
+          <div className="absolute inset-0 transform translate-x-1 translate-y-1" />
+          <div className="w-64 h-64 flex items-center justify-center relative">
+            {/* <Shield size={40} className={`${scheme.text}/70`} /> */}
+            <img
+              src={`/teams/${getTeamIdFromTeams(club)}.png`}
+              alt={club}
+              sizes="40"
+            />
           </div>
         </div>
       </div>
