@@ -5,19 +5,12 @@ const func: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
   const { deployer } = await hre.getNamedAccounts();
   const { deploy } = hre.deployments;
 
-  // const deployed = await deploy("ConfidentialERC20", {
-  //   from: deployer,
-  //   log: true,
-  // });
-
-  // console.log(`ConfidentialToken contract deployed at: ${deployed.address}`);
-
   const deployed = await deploy("ZoroCore", {
     from: deployer,
     log: true,
     args: [
       "0x09F1aF4e16728fcF340051055159F0f9D5e00b54",
-      "0x0429A2Da7884CA14E53142988D5845952fE4DF6a",
+      "0xaab3FeEce86D7Ae8998Ed852C21b094C777d3bcF",
       [
         [1, 85, 88, 82, 78, "0x87dd08be032a03d937f2a8003dfa9c52821cbab9", "Rafael Leão"],
         [2, 78, 82, 80, 75, "0x87dd08be032a03d937f2a8003dfa9c52821cbab9", "Theo Hernández"],
