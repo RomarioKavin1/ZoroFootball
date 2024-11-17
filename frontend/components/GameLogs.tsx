@@ -1,13 +1,18 @@
-// components/GameLogs.tsx
 import { GameLog } from "@/types/logs";
 
 interface GameLogsProps {
   logs: GameLog[];
   showLogs: boolean;
   setShowLogs: (show: boolean) => void;
+  chain?: string;
 }
 
-export const GameLogs = ({ logs, showLogs, setShowLogs }: GameLogsProps) => {
+export const GameLogs = ({
+  logs,
+  showLogs,
+  setShowLogs,
+  chain,
+}: GameLogsProps) => {
   return (
     <div className="fixed bottom-0 right-0 z-50">
       <button
@@ -79,7 +84,11 @@ export const GameLogs = ({ logs, showLogs, setShowLogs }: GameLogsProps) => {
                   <div className="mt-1">{log.message}</div>
                   {log.txHash && (
                     <a
-                      href={`https://testnet.chiliscan.com/tx/${log.txHash}`}
+                      href={
+                        !chain
+                          ? `https://testnet.chiliscan.com/tx/${log.txHash}`
+                          : `https://base.blockscout.com/tx/${log.txHash}`
+                      }
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-xs text-purple-400 hover:text-purple-300 transition-colors mt-1 block truncate"
