@@ -16,6 +16,7 @@ from langgraph.graph import START, MessagesState, StateGraph
 from dotenv import load_dotenv
 from dstack_sdk import AsyncTappdClient, DeriveKeyResponse, TdxQuoteResponse
 from cdpMethods import cdp_handler, TransactionResult
+from fastapi.middleware.cors import CORSMiddleware
 
 # Load environment variables and configure logging
 load_dotenv()
@@ -27,7 +28,18 @@ if not OPENAI_API_KEY:
     raise ValueError("OPENAI_API_KEY environment variable is not set")
 
 app = FastAPI(title="Card Game AI API")
+origins = [
+    "http://localhost:3001",  # Add your frontend URL here
+    "http://127.0.0.1:3001",  # Add other allowed origins if needed
+]
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all HTTP methods
+    allow_headers=["*"],  # Allow all headers
+)
 # Model Definitions
 class Move(str, Enum):
     ATTACK = "attack"

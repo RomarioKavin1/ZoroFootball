@@ -76,7 +76,7 @@ const abi = [
 
 const addresses = {
   [baseSepolia.id]: "0x7B2C51d3b9e93480F28A330a0ee938C2182cD486",
-  [spicy.id]: "0x8A3756bE7da6DFE95824A19340032BfB52f61319",
+  [spicy.id]: "0xFBA3912Ca04dd458c843e2EE08967fC04f3579c2",
   [polygonAmoy.id]: "0x04B959704f5d6893eA6aAaeC3a3d294DE4b764A6",
   [flowTestnet.id]: "0x51b83a5Eb4786295F9F5B62c247287456C3E69e8",
   [scrollSepolia.id]: "0x1c89e2970889cA2eA64078c9A87eBEd03D68a541",
