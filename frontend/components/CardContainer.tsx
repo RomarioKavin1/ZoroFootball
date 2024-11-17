@@ -63,7 +63,7 @@ type PlayerCardProps = {
   type: "left" | "right";
   onClick?: () => void;
 };
-const getTeamIdFromTeams = (clubName: string) => {
+export const getTeamIdFromTeams = (clubName: string) => {
   const team = teams.find(([_, name]) => name === clubName);
   return team ? team[2] : null; // Return the ID (third element) if found, null otherwise
 };

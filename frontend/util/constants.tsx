@@ -160,6 +160,17 @@ export const countryToCode: { [key: string]: string } = {
   slovenia: "si",
   bulgaria: "bg",
 };
+export const fanTokenData = {
+  "0x87dd08be032a03d937F2A8003dfa9C52821cbaB9": 0, // ACM
+  "0x45E50677f8DECa7CC582Ad573b525409d1233592": 1, // BAR
+  "0x34c00007cf1Ca7a3D9DccE8cF1D3f75B4db4d37e": 0, // INT
+  "0x634c9b919A484913C46362e2E0E700576920c994": 0, // JUV
+  "0x660e2D9f26542957C7E819f91944d72Cfca32058": 0, // MCI
+  "0x2452a4eEC9359Ff93C084ed5eD3E21eaC197586D": 0, // NAP
+  "0xD82ee61aA30d018239350f9843cB8A4967B8b3da": 0, // PSG
+  "0xD0b9383c34297bD7A9d01c2FA8Da22124dfE1Ec5": 0, // TOT
+};
+
 export const playersData = [
   {
     name: "Rafael Leão",

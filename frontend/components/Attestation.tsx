@@ -163,6 +163,9 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
                       </div>
                     </div>
                   </div>
+                  <a href="https://base-sepolia.blockscout.com/tx/0x19d7f6f787ba069b9ab10cd404a45bc21df257950af35bf10fe39fdcded1ea46">
+                    Transaction
+                  </a>
                 </div>
               </div>
             ) : (
