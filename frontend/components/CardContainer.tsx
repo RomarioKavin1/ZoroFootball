@@ -59,6 +59,7 @@ type PlayerCardProps = {
     pace: number;
     passing: number;
   };
+  clubToken?: string;
   type: "left" | "right";
   onClick?: () => void;
 };

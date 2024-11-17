@@ -23,6 +23,7 @@ interface PlayerCard {
   id: number;
   club: string;
   nationality: string;
+  clubToken?: string;
   stats: {
     pace: number;
     attack: number;
@@ -100,23 +101,23 @@ export default function Home() {
       onClick={onClick}
       disabled={disabled}
       className={`
-        px-6 
-        py-2 
-        ${
-          disabled
-            ? "bg-gray-600 cursor-not-allowed"
-            : "bg-purple-600 hover:bg-purple-500 active:bg-purple-700"
-        }
-        text-white 
-        font-mono 
-        rounded-sm 
-        transition-all 
-        duration-200 
-        border-2 
-        border-purple-400
-        disabled:border-gray-400
-        disabled:opacity-50
-      `}
+          px-6 
+          py-2 
+          ${
+            disabled
+              ? "bg-gray-600 cursor-not-allowed"
+              : "bg-purple-600 hover:bg-purple-500 active:bg-purple-700"
+          }
+          text-white 
+          font-mono 
+          rounded-sm 
+          transition-all 
+          duration-200 
+          border-2 
+          border-purple-400
+          disabled:border-gray-400
+          disabled:opacity-50
+        `}
     >
       Draw Card
     </button>
@@ -184,7 +185,6 @@ export default function Home() {
       setShowTimer(false);
       setRoundActive(false);
       setIsSelectionPhase(false);
-      setShowPlayer2Selection(true);
 
       if (playedCardIndex !== -1) {
         const newSlots = [...availableSlots];
@@ -192,24 +192,17 @@ export default function Home() {
         setAvailableSlots(newSlots);
       }
 
-      // Get random card for AI
-      const availableIds = playersData.map((player) => player.id);
-      const randomId =
-        availableIds[Math.floor(Math.random() * availableIds.length)];
-      const player2Card = getPlayerFromId(randomId);
+      // Fetch Player 2's card
+      await fetchPlayer2Card();
 
       setTimeout(() => {
-        setPlayer2SelectedCard(player2Card);
+        setShowPlayer2Selection(false);
+        setShowVsScreen(true);
 
         setTimeout(() => {
-          setShowPlayer2Selection(false);
-          setShowVsScreen(true);
-
-          setTimeout(() => {
-            setShowVsScreen(false);
-            setShowComparison(true);
-          }, 3000);
-        }, 2000);
+          setShowVsScreen(false);
+          setShowComparison(true);
+        }, 3000);
       }, 2000);
     } catch (error) {
       console.error("Error playing card:", error);
@@ -276,6 +269,77 @@ export default function Home() {
 
     setDeckCount(7);
   };
+  const fetchPlayer2Card = async () => {
+    try {
+      // Prepare request body with transformed yourDeck
+      const requestPayload = {
+        threadid: threadId,
+        round: 1,
+        previousround: {
+          prev_roundoutcome: "start",
+          PlayerUsedinPrevRound: "card drawn",
+        },
+        opponent: {
+          move: "waiting for your move",
+        },
+        availablemoves: ["attack", "draw card"],
+        yourDeck: availableSlots
+          .map((id) => {
+            const player = getPlayerFromId(id);
+            return player
+              ? {
+                  id: player.id,
+                  pace: player.stats.pace,
+                  attack: player.stats.attack,
+                  passing: player.stats.passing,
+                  defence: player.stats.defence,
+                  teamFanTokenAddress: player.clubToken,
+                  metadata: player.name,
+                }
+              : null;
+          })
+          .filter(Boolean), // Filter out any null values
+      };
+
+      console.log(requestPayload);
+
+      // Make API call
+      const response = await fetch("http://localhost:3000/game/move", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(requestPayload),
+      });
+
+      if (!response.ok) {
+        throw new Error(`API responded with status ${response.status}`);
+      }
+
+      const data = await response.json();
+
+      // Update attestation state
+      const { player, attestation } = data;
+
+      if (player) {
+        const playerCard = getPlayerFromId(player.id);
+        if (playerCard) {
+          setPlayer2SelectedCard(playerCard);
+        }
+      }
+
+      // Store attestation
+      setAttestations((prev) => [...prev, attestation]);
+    } catch (error) {
+      console.error("Error fetching Player 2 card:", error);
+
+      // Fallback to a random card
+      const fallbackCard = getRandomCard();
+      if (fallbackCard) {
+        setPlayer2SelectedCard(fallbackCard);
+      }
+    }
+  };
 
   const handleComparisonComplete = (result: ComparisonResult) => {
     setRoundResult(result);
@@ -336,20 +400,20 @@ export default function Home() {
   const EmptySlotPlayer1 = () => (
     <div
       className={`
-        w-64 h-96 
-        border-4 border-dashed
-        border-purple-500/30
-        rounded-xl
-        flex flex-col items-center justify-center
-        gap-4
-        bg-black/20
-        backdrop-blur-sm
-        transition-all
-        duration-200
-        hover:bg-black/30
-        hover:border-purple-500/50
-        group
-      `}
+          w-64 h-96 
+          border-4 border-dashed
+          border-purple-500/30
+          rounded-xl
+          flex flex-col items-center justify-center
+          gap-4
+          bg-black/20
+          backdrop-blur-sm
+          transition-all
+          duration-200
+          hover:bg-black/30
+          hover:border-purple-500/50
+          group
+        `}
     >
       <span className="text-purple-500/50 group-hover:text-purple-500/70 transition-colors duration-200">
         Empty Slot
@@ -364,14 +428,14 @@ export default function Home() {
   const EmptySlotPlayer2 = () => (
     <div
       className={`
-        w-64 h-96 
-        border-4 border-dashed
-        border-purple-500/30
-        rounded-xl
-        flex items-center justify-center
-        bg-black/20
-        backdrop-blur-sm
-      `}
+          w-64 h-96 
+          border-4 border-dashed
+          border-purple-500/30
+          rounded-xl
+          flex items-center justify-center
+          bg-black/20
+          backdrop-blur-sm
+        `}
     >
       <span className="text-purple-500/50">AI Yet To select</span>
     </div>
@@ -457,7 +521,7 @@ export default function Home() {
                   ) : (
                     <div
                       className="w-64 h-96 border-4 border-dashed border-purple-500/30 rounded-xl 
-            flex items-center justify-center bg-black/20 backdrop-blur-sm"
+              flex items-center justify-center bg-black/20 backdrop-blur-sm"
                     >
                       <span className="text-purple-500/50">Empty Slot</span>
                     </div>

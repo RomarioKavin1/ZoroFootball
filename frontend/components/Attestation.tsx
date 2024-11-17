@@ -8,23 +8,16 @@ interface PlayerData {
   passing: number;
   defence: number;
   teamFanTokenAddress: string;
-  metadata: string;
 }
 
 export interface AttestationData {
-  threadid: number;
-  round: number;
-  move: string;
-  player: PlayerData | "card drawn";
-  attestation: {
-    deriveKey: {
-      deriveKey: string;
-      derive_32bytes: string;
-    };
-    tdxQuote: {
-      quote: string;
-      event_log: string;
-    };
+  deriveKey: {
+    deriveKey: string;
+    derive_32bytes: string;
+  };
+  tdxQuote: {
+    quote: string;
+    event_log: string;
   };
 }
 
@@ -88,17 +81,14 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
                 `}
               >
                 <div className="flex items-center justify-between">
-                  <div className="text-white/90 font-semibold">
-                    Round {att.round}
-                  </div>
-                  <div className="text-xl">{renderMoveIcon(att.move)}</div>
+                  {selectedAttestation?.tdxQuote.event_log}
                 </div>
-                <div className="text-purple-400 text-sm">Move: {att.move}</div>
+                {/* <div className="text-purple-400 text-sm">Move: {att.move}</div>
                 <div className="text-gray-400 text-xs mt-1">
                   {typeof att.player === "string"
                     ? "New Card Drawn"
-                    : att.player.metadata}
-                </div>
+                    : att.player.id}
+                </div> */}
               </div>
             ))}
           </div>
@@ -112,23 +102,23 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
                     Move Details
                   </h3>
                   <div className="text-white/80 text-sm mt-1">
-                    <div>Thread ID: {selectedAttestation.threadid}</div>
+                    {/* <div>Thread ID: {selectedAttestation.threadid}</div>
                     <div>Round: {selectedAttestation.round}</div>
                     <div className="flex items-center gap-2">
                       Move Type: {selectedAttestation.move}
                       <span className="text-xl">
                         {renderMoveIcon(selectedAttestation.move)}
                       </span>
-                    </div>
+                    </div> */}
                   </div>
                 </div>
 
                 {/* Player Details - Only show for attack moves */}
-                {typeof selectedAttestation.player !== "string" && (
+                {/* {typeof selectedAttestation.player !== "string" && (
                   <div className="border-b border-purple-500/30 pb-2">
                     <h3 className="text-purple-400 font-semibold">Player</h3>
                     <div className="text-white/80 text-sm mt-1">
-                      <div>Name: {selectedAttestation.player.metadata}</div>
+                      <div>Name: {selectedAttestation.player.id}</div>
                       <div>Attack: {selectedAttestation.player.attack}</div>
                       <div>
                         Contract:{" "}
@@ -143,7 +133,7 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
                       </div>
                     </div>
                   </div>
-                )}
+                )} */}
 
                 {/* Attestation Details */}
                 <div>
@@ -152,19 +142,13 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
                     <div className="bg-black/30 p-2 rounded">
                       <div className="text-gray-400">Derive Key:</div>
                       <div className="text-white/70 break-all">
-                        {
-                          selectedAttestation.attestation.deriveKey
-                            .derive_32bytes
-                        }
+                        {selectedAttestation.deriveKey.derive_32bytes}
                       </div>
                     </div>
                     <div className="bg-black/30 p-2 rounded">
                       <div className="text-gray-400">Quote:</div>
                       <div className="text-white/70 break-all">
-                        {selectedAttestation.attestation.tdxQuote.quote.slice(
-                          0,
-                          50
-                        )}
+                        {selectedAttestation.tdxQuote.quote.slice(0, 50)}
                         ...
                       </div>
                     </div>
@@ -172,9 +156,7 @@ export const AttestationLog = ({ attestations }: AttestationLogProps) => {
                       <div className="text-gray-400">Event Log:</div>
                       <div className="text-white/70 whitespace-pre-wrap">
                         {JSON.stringify(
-                          JSON.parse(
-                            selectedAttestation.attestation.tdxQuote.event_log
-                          ),
+                          JSON.parse(selectedAttestation.tdxQuote.event_log),
                           null,
                           2
                         )}
