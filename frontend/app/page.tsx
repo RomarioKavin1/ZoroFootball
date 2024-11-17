@@ -380,7 +380,7 @@ export default function Home() {
   return (
     <div className="flex justify-center items-center">
       <div className="relative w-[1472px] h-[832px] rounded-lg overflow-hidden border-4 border-purple-500 mt-10">
-        {gameStarted && <ConnectCorner />}
+        <ConnectCorner />
 
         <div
           className="absolute inset-0 bg-cover bg-center bg-no-repeat"

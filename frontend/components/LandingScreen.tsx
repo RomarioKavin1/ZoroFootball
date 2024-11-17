@@ -127,13 +127,14 @@ const LandingScreen = ({ onStart }: LandingScreenProps) => {
   };
 
   return (
-    <div className="absolute inset-0 bg-slate-900 overflow-hidden">
-      {/* Your existing background animation code */}
-      <div className="absolute inset-0 opacity-20">
+    <div className="absolute inset-0 bg-gradient-to-b from-slate-900 to-purple-900/50 overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0">
+        {/* Floating particles */}
         {[...Array(20)].map((_, i) => (
           <div
             key={i}
-            className="absolute w-2 h-2 bg-purple-500 rounded-none animate-float"
+            className="absolute w-2 h-2 bg-purple-500/30 rounded-none animate-float"
             style={{
               left: `${Math.random() * 100}%`,
               top: `${Math.random() * 100}%`,
@@ -142,93 +143,161 @@ const LandingScreen = ({ onStart }: LandingScreenProps) => {
             }}
           />
         ))}
+
+        {/* Glowing grid effect */}
+        <div
+          className="absolute inset-0 opacity-10"
+          style={{
+            backgroundImage:
+              "linear-gradient(to right, rgba(139, 92, 246, 0.1) 1px, transparent 1px), linear-gradient(to bottom, rgba(139, 92, 246, 0.1) 1px, transparent 1px)",
+            backgroundSize: "50px 50px",
+          }}
+        />
       </div>
 
-      <div className="relative h-full flex flex-col items-center justify-center gap-8">
-        {/* Title */}
+      <div className="relative h-full flex flex-col items-center justify-center gap-12">
+        {/* Title Section with Glow Effect */}
         <div
-          className={`transform transition-all duration-1000 ease-out ${
-            isLoaded ? "translate-y-0 opacity-100" : "-translate-y-20 opacity-0"
-          }`}
+          className={`
+            transform transition-all duration-1000 ease-out 
+            ${
+              isLoaded
+                ? "translate-y-0 opacity-100"
+                : "-translate-y-20 opacity-0"
+            }
+          `}
         >
-          <div className="relative p-1">
-            <div
-              className="absolute inset-0 bg-purple-600"
-              style={{
-                clipPath: `polygon(
-                  0 4px, 4px 4px, 4px 0,
-                  calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
-                  100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
-                  4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
-                )`,
-              }}
-            />
-            <h1 className="relative px-16 py-8 text-6xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-purple-300 to-purple-100">
-              BLOCKS &<span className="block text-center">BALLS</span>
-            </h1>
+          <div className="relative">
+            {/* Glow effect */}
+            <div className="absolute -inset-4 bg-purple-500/20 blur-xl rounded-lg" />
+
+            <div className="relative p-1">
+              <div
+                className="absolute inset-0 bg-gradient-to-r from-purple-600 to-purple-400"
+                style={{
+                  clipPath: `polygon(
+                    0 4px, 4px 4px, 4px 0,
+                    calc(100% - 4px) 0, calc(100% - 4px) 4px, 100% 4px,
+                    100% calc(100% - 4px), calc(100% - 4px) calc(100% - 4px), calc(100% - 4px) 100%,
+                    4px 100%, 4px calc(100% - 4px), 0 calc(100% - 4px)
+                  )`,
+                }}
+              />
+              <h1 className="relative px-16 py-8 text-7xl font-bold">
+                <span className="block  bg-clip-text bg-gradient-to-r from-yellow-300 to-purple-400">
+                  BLOCKS
+                </span>
+                <span className="block text-center  bg-clip-text bg-gradient-to-r from-yellow-400 to-purple-300">
+                  & BALLS
+                </span>
+              </h1>
+            </div>
           </div>
         </div>
 
-        {/* Smart Account Info */}
+        {/* Smart Account Card */}
         {smartAccountAddress && (
           <div
-            className={`transform transition-all duration-700 ease-out ${
-              isLoaded
-                ? "translate-y-0 opacity-100"
-                : "translate-y-20 opacity-0"
-            }`}
+            className={`
+              transform transition-all duration-700 ease-out
+              ${
+                isLoaded
+                  ? "translate-y-0 opacity-100"
+                  : "translate-y-20 opacity-0"
+              }
+              max-w-md w-full mx-auto
+            `}
           >
-            <div className="bg-purple-900/30 backdrop-blur-sm p-4 rounded-lg border-2 border-purple-500/30">
-              <div className="text-purple-300 text-sm mb-1">Smart Account:</div>
-              <div className="text-white/90 font-mono text-sm">
-                {smartAccountAddress}
+            <div className="relative">
+              {/* Card glow effect */}
+              <div className="absolute -inset-1 bg-purple-500/20 rounded-lg blur" />
+
+              <div className="relative bg-black/40 backdrop-blur-md p-6 rounded-lg border border-purple-500/30">
+                <div className="text-purple-300 font-medium mb-2">
+                  Smart Account Connected
+                </div>
+                <div className="text-white/90 font-mono text-sm break-all">
+                  {smartAccountAddress}
+                </div>
+
+                {/* Status indicator */}
+                <div className="absolute top-6 right-6 flex items-center gap-2">
+                  <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                  <span className="text-green-400 text-xs">Active</span>
+                </div>
               </div>
             </div>
           </div>
         )}
 
-        {/* Loading State */}
-        {loading && (
-          <div className="text-white bg-purple-600/80 px-4 py-2 rounded">
-            {loading}
-          </div>
-        )}
+        {/* Loading and Transaction Status */}
+        <div className="space-y-4 text-center">
+          {loading && (
+            <div className="text-white bg-purple-600/40 backdrop-blur-sm px-6 py-3 rounded-lg border border-purple-500/30 flex items-center gap-3">
+              <div className="w-4 h-4 border-2 border-white/80 border-t-transparent rounded-full animate-spin" />
+              <span>{loading}</span>
+            </div>
+          )}
 
-        {/* Transaction Hash */}
-        {txHash && (
-          <div className="text-sm">
-            <a
-              href={`${chilizSpicy.blockExplorers.default.url}/tx/${txHash}`}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-purple-400 hover:text-purple-300 transition-colors"
-            >
-              View Transaction
-            </a>
-          </div>
-        )}
+          {txHash && (
+            <div className="text-sm animate-fade-in">
+              <a
+                href={`${chilizSpicy.blockExplorers.default.url}/tx/${txHash}`}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-2 text-purple-300 hover:text-purple-200 transition-colors bg-purple-500/10 px-4 py-2 rounded-lg"
+              >
+                <span>View Transaction</span>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-4 w-4"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+              </a>
+            </div>
+          )}
+        </div>
 
-        {/* Connect/Start Button */}
-        <div className="flex flex-col items-center gap-4">
+        {/* Action Buttons */}
+        <div className="flex flex-col items-center gap-6">
           {!primaryWallet ? (
-            <DynamicWidget />
+            <div className="transform hover:scale-105 transition-transform">
+              <DynamicWidget />
+            </div>
           ) : !smartAccountAddress ? (
-            <div className="text-purple-300">Initializing...</div>
+            <div className="text-purple-300 flex items-center gap-3">
+              <div className="w-5 h-5 border-2 border-purple-300 border-t-transparent rounded-full animate-spin" />
+              Initializing...
+            </div>
           ) : (
             <button
               onClick={createMintSession}
               disabled={!!loading}
               className={`
-                relative group px-12 py-4
-                bg-purple-600 hover:bg-purple-500 active:bg-purple-700
-                disabled:bg-purple-800 disabled:cursor-not-allowed
-                text-white font-bold text-xl
+                relative group px-16 py-5
+                bg-gradient-to-r from-purple-600 to-purple-500
+                hover:from-purple-500 hover:to-purple-400
+                disabled:from-purple-800 disabled:to-purple-700
+                disabled:cursor-not-allowed
+                text-white font-bold text-2xl
                 transition-all duration-200
                 rounded-lg
-                border-2 border-purple-400
+                border-2 border-purple-400/50
+                shadow-lg shadow-purple-500/20
+                transform hover:scale-105 active:scale-95
               `}
             >
-              {loading ? "Creating Session..." : "START GAME"}
+              <div className="absolute -inset-1 bg-purple-500/20 blur opacity-0 group-hover:opacity-100 transition-opacity rounded-lg" />
+              <span className="relative">
+                {loading ? "Creating Session..." : "START GAME"}
+              </span>
             </button>
           )}
         </div>
