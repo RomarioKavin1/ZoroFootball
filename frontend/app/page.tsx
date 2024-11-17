@@ -12,6 +12,9 @@ import GameOverScreen from "@/components/GameOver";
 import { DynamicWidget } from "@dynamic-labs/sdk-react-core";
 import { AttestationData, AttestationLog } from "@/components/Attestation";
 import { ConnectCorner } from "@/components/ConnectButton";
+import { GameLog, LogType } from "@/types/logs";
+import { GameService } from "@/util/gameService";
+import { GameLogs } from "@/components/GameLogs";
 
 interface PlayerCard {
   name: string;
@@ -65,14 +68,21 @@ export default function Home() {
   const [availableSlots, setAvailableSlots] = useState<number[]>([
     3, 5, 11, 40, 33, 2, 9,
   ]);
-  const [logs, setLogs] = useState<string[]>([]);
+  const [logs, setLogs] = useState<GameLog[]>([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [threadId] = useState<number>(Date.now());
 
   // Add this function to add logs
-  const addLog = (message: string) => {
+
+  const addLog = (message: string, type: LogType, txHash?: string) => {
     setLogs((prev) => [
+      {
+        type,
+        message,
+        timestamp: new Date().toLocaleTimeString(),
+        txHash,
+      },
       ...prev,
-      `${new Date().toLocaleTimeString()}: ${message}`,
     ]);
   };
 
@@ -114,60 +124,103 @@ export default function Home() {
   const handleNewAttestation = (attestation: AttestationData) => {
     setAttestations((prev) => [...prev, attestation]);
   };
-  const handleDrawCard = () => {
+  const handleGameStart = async () => {
+    try {
+      addLog("Creating game on chain...", "game");
+      const hash = await GameService.createGame(threadId);
+      addLog("Game created successfully", "tx", hash);
+      setGameStarted(true);
+    } catch (error) {
+      console.error("Error creating game:", error);
+      if (error instanceof Error) {
+        addLog(`Failed to create game: ${error.message}`, "error");
+      } else {
+        addLog("Failed to create game: Unknown error", "error");
+      }
+    }
+  };
+  const handleDrawCard = async () => {
     const emptySlotIndex = availableSlots.findIndex((id) => id === 0);
     if (emptySlotIndex === -1) return;
 
-    const availableIds = playersData.map((player) => player.id);
-    const randomId =
-      availableIds[Math.floor(Math.random() * availableIds.length)];
+    try {
+      addLog("Drawing new card...", "draw");
+      const hash = await GameService.drawCard(threadId);
+      addLog(`Card drawn successfully`, "tx", hash);
 
-    const newSlots = [...availableSlots];
-    newSlots[emptySlotIndex] = randomId;
-    setAvailableSlots(newSlots);
+      const availableIds = playersData.map((player) => player.id);
+      const randomId =
+        availableIds[Math.floor(Math.random() * availableIds.length)];
+      const newSlots = [...availableSlots];
+      newSlots[emptySlotIndex] = randomId;
+      setAvailableSlots(newSlots);
+    } catch (error) {
+      console.error("Error drawing card:", error);
+      if (error instanceof Error) {
+        addLog(`Failed to draw card: ${error.message}`, "error");
+      } else {
+        addLog("Failed to draw card: Unknown error", "error");
+      }
+    }
   };
+
   const getPlayerFromId = (id: number): PlayerCard | null => {
     if (id === 0) return null;
     return playersData.find((player) => player.id === id) || null;
   };
-  const playCard = () => {
+
+  const playCard = async () => {
     if (!player1SelectedCard || !isSelectionPhase) return;
 
-    setShowTimer(false);
-    setRoundActive(false);
-    setIsSelectionPhase(false);
-    setShowPlayer2Selection(true);
+    try {
+      const playedCardIndex = availableSlots.findIndex(
+        (id) => id === player1SelectedCard.id
+      );
 
-    // Remove the played card from available slots
-    const playedCardIndex = availableSlots.findIndex(
-      (id) => id === player1SelectedCard.id
-    );
-    if (playedCardIndex !== -1) {
-      const newSlots = [...availableSlots];
-      newSlots[playedCardIndex] = 0; // Set to empty slot
-      setAvailableSlots(newSlots);
-    }
+      addLog(`Playing card: ${player1SelectedCard.name}`, "move");
+      const hash = await GameService.makeMove(threadId, playedCardIndex);
+      addLog(`Move submitted successfully`, "tx", hash);
 
-    // Get random card for AI
-    const availableIds = playersData.map((player) => player.id);
-    const randomId =
-      availableIds[Math.floor(Math.random() * availableIds.length)];
-    const player2Card = getPlayerFromId(randomId);
+      setShowTimer(false);
+      setRoundActive(false);
+      setIsSelectionPhase(false);
+      setShowPlayer2Selection(true);
 
-    setTimeout(() => {
-      setPlayer2SelectedCard(player2Card);
+      if (playedCardIndex !== -1) {
+        const newSlots = [...availableSlots];
+        newSlots[playedCardIndex] = 0;
+        setAvailableSlots(newSlots);
+      }
+
+      // Get random card for AI
+      const availableIds = playersData.map((player) => player.id);
+      const randomId =
+        availableIds[Math.floor(Math.random() * availableIds.length)];
+      const player2Card = getPlayerFromId(randomId);
 
       setTimeout(() => {
-        setShowPlayer2Selection(false);
-        setShowVsScreen(true);
+        setPlayer2SelectedCard(player2Card);
 
         setTimeout(() => {
-          setShowVsScreen(false);
-          setShowComparison(true);
-        }, 3000);
+          setShowPlayer2Selection(false);
+          setShowVsScreen(true);
+
+          setTimeout(() => {
+            setShowVsScreen(false);
+            setShowComparison(true);
+          }, 3000);
+        }, 2000);
       }, 2000);
-    }, 2000);
+    } catch (error) {
+      console.error("Error playing card:", error);
+      if (error instanceof Error) {
+        addLog(`Failed to submit move: ${error.message}`, "error");
+      } else {
+        addLog("Failed to submit move: Unknown error", "error");
+      }
+    }
   };
+
   useEffect(() => {
     if (player1Life <= 0) {
       setGameOver(true);
@@ -336,7 +389,7 @@ export default function Home() {
           }}
         />
         {!gameStarted ? (
-          <LandingScreen onStart={() => setGameStarted(true)} />
+          <LandingScreen onStart={handleGameStart} />
         ) : gameOver ? (
           <GameOverScreen
             winner={player1Life > 0 ? "player1" : "player2"}
@@ -484,44 +537,7 @@ export default function Home() {
           </div>
         )}
       </div>
-      <div className="fixed bottom-0 right-0 z-50">
-        {/* Tab Button */}
-        <button
-          onClick={() => setShowLogs(!showLogs)}
-          className="bg-purple-600 text-white px-4 py-2 rounded-t-lg font-mono hover:bg-purple-500 transition-colors"
-        >
-          {showLogs ? "▼ Logs" : "▲ Logs"}
-        </button>
-
-        {/* Logs Panel */}
-        <div
-          className={`
-          bg-black/90 
-          border-t-2 border-l-2 border-purple-500
-          w-96 
-          transition-all duration-300 ease-in-out
-          ${showLogs ? "h-64" : "h-0"}
-          overflow-hidden 
-        `}
-        >
-          <div className="p-4 h-full overflow-y-auto">
-            {logs.length === 0 ? (
-              <div className="text-gray-500 text-center mt-4">No logs yet</div>
-            ) : (
-              <div className="flex flex-col gap-2">
-                {logs.map((log, index) => (
-                  <div
-                    key={index}
-                    className="text-sm text-white/80 font-mono border-b border-purple-500/20 pb-1"
-                  >
-                    {log}
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
+      <GameLogs logs={logs} showLogs={showLogs} setShowLogs={setShowLogs} />
       <AttestationLog attestations={attestations} />
     </div>
   );
